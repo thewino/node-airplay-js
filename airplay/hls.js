@@ -106,9 +106,9 @@ HLSServer.prototype.open = function ( fileFullPath, callback ) {
     }
 
     this.file = fileFullPath;
-    
+
     var whichCommand = /^win/.test(process.platform) ? 'where' : 'which'
-    
+
     self.checkFirst = spawn(whichCommand,['ffprobe'])
     self.checkFirst.on('close', function(data){
         console.log("x:"+data)
@@ -120,7 +120,7 @@ HLSServer.prototype.open = function ( fileFullPath, callback ) {
     })
     self.checkFirst.stdout.on('data', function(data){
         console.log("d:"+data)
-        
+
         // # -------------------------------------------------- # //
         // TODO: find the ffmpeg path when the object is constructed instead of resolving it now.
         // PATCH to actually find the ffmpeg executable
@@ -132,17 +132,15 @@ HLSServer.prototype.open = function ( fileFullPath, callback ) {
                 console.log("FFMPEG path set to " + ffmpegPath)
             }
         } else {
+            self.emit("NoFFMPEG")
             return; // We assume that which will return != 0 so on('close') will handle the NoFFMPEG case.
         }
         // # -------------------------------------------------- # //
-        
+
         if(data.length >0){
             self.openThread = spawn(
                 self.options.lib + 'ffprobe',
-                self.command4FFProbe( self.file ), function(a){
-                    console.log("finished!")
-                }
-            );
+                self.command4FFProbe( self.file ));
             var output = '';
             self.openThread.stdout.on( 'data', function ( chunk ) {
                 output += chunk;
@@ -288,13 +286,19 @@ HLSServer.prototype.httpHandler = function ( request, response ) {
     if ( uri.pathname === '/' ) {
         body.push( '#EXTM3U' );
         body.push( '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="und",NAME="Original Audio",DEFAULT=YES,AUTOSELECT=YES' );
-        this.subtitles.forEach(function(each){
-            body.push( '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE="en",URI="http://'+self.address+':'+self.port+'/subtitles/'+each.language+'.m3u8"' )
-        })
+        if(this.subtitles){
+            this.subtitles.forEach(function(each){
+                body.push( '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE="en",URI="http://'+self.address+':'+self.port+'/subtitles/'+each.language+'.m3u8"' )
+            })
+        }
         //body.push( '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Spanish",DEFAULT=NO,AUTOSELECT=NO,FORCED=YES,LANGUAGE="en",URI="http://carlosguerrero.com/b.m3u8"' )
 
         // stream#0
-        body.push( '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=20000000,CODECS="mp4a.40.2,avc1.640028",AUDIO="audio",SUBTITLES="subs"' );
+        if(this.subtitles){
+            body.push( '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=20000000,CODECS="mp4a.40.2,avc1.640028",AUDIO="audio",SUBTITLES="subs"' );
+        }else{
+            body.push( '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=20000000,CODECS="mp4a.40.2,avc1.640028",AUDIO="audio"' );
+        }
         body.push( this.getURI( 'video' ) );
 
         // // stream#1

@@ -137,10 +137,10 @@ Device.prototype.play = function(media, position, callback){
     //
     console.log(typeof(media))
     self.hls.start( 7001 + this.id );
-    if (typeof(media) != 'string'){
-        self.hls.setSubtitles(media.subtitles)
-        media = media.file
-    }
+    //if (typeof(media) != 'string'){
+    //    self.hls.setSubtitles(media.subtitles)
+    //    media = media.file
+    //}
 
     console.log("going to play: "+media)
     self.hls.open( media , function ( info ) {
