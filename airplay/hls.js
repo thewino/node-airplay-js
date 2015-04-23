@@ -80,7 +80,7 @@ HLSServer.prototype.getURI = function ( type, index ) {
         return '/stream/0.m3u8';
     }
     else if ( type === 'audio' ) {
-        return '/straem/1.m3u8';
+        return '/stream/1.m3u8';
     }
     else if ( type === 'iframes' ) {
         return '/iframes.m3u8';
@@ -94,12 +94,22 @@ HLSServer.prototype.getURI = function ( type, index ) {
 };
 
 HLSServer.prototype.setSubtitles = function( subtitles ){
+    console.log("Setting subtitles to: "+subtitles)
     var self = this
     self.subtitles = subtitles
 }
 
 HLSServer.prototype.open = function ( fileFullPath, callback ) {
     var self = this;
+    var media = fileFullPath
+
+    console.log("fileFullPath:")
+    console.log(fileFullPath)
+    console.log(typeof(fileFullPath))
+    if (typeof(fileFullPath) != 'string'){
+        self.subtitles = media.subtitles
+        fileFullPath = media.file
+    }
 
     if ( this.openThread ) {
         this.openThread.kill();
@@ -284,8 +294,10 @@ HLSServer.prototype.httpHandler = function ( request, response ) {
     this.emit( 'request', request );
 
     if ( uri.pathname === '/' ) {
+        console.log("attending /")
         body.push( '#EXTM3U' );
         body.push( '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="und",NAME="Original Audio",DEFAULT=YES,AUTOSELECT=YES' );
+        console.log(this.subtitles)
         if(this.subtitles){
             this.subtitles.forEach(function(each){
                 body.push( '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE="en",URI="http://'+self.address+':'+self.port+'/subtitles/'+each.language+'.m3u8"' )
